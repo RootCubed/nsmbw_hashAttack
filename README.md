@@ -44,9 +44,9 @@ Thanks to [Ninji](https://twitter.com/_Ninji), a large amount of the hashes have
 ### Further details on this
 I used the fact that the afterXXX functions are thunked in `dBase_c` to get identical functions with different base classes. I started with the `afterCreate` symbol hash and used the hash for the mangled symbol to find out the length of the enum name. At first I assumed that the type name was simply `{len(name)}name` and quickly found collisions for 18 character strings. But I knew this wasn't correct, because I could not get any 18 character collisions with the `afterDraw` symbol hash.
 
-I realized that the enum might be a class member and just assumed that it must then belong to `fBase_c`. I let the program find collisions for `7fBase_cFQ27fBase_c{len(enumname)}enumname` and was able to find collisions with length 12. I moved over to the demangled symbol names and wasn't able to get any matches for `fBase_c::{funcName}( fBase_c::{len(enumname)}enumname )`. However, I was able to find collisions with length 12 for `fBase_c::{funcName}( {len(enumname)}enumname )`.
+I realized that the enum might be a class member and just assumed that it must then belong to `fBase_c`. I let the program find collisions for `7fBase_cFQ27fBase_c{len(enumname)}enumname` and was able to find collisions with length 12. I moved over to the demangled symbol names and wasn't able to get any matches for `fBase_c::{funcName}( fBase_c::{enumname} )`. However, I was able to find collisions with length 12 for `fBase_c::{funcName}( {enumname} )`.
 
-This makes me rather confident in saying that the enum type passed to the `afterXXX` functions belongs to the class `fBase_c` and is 12 characters long.
+~~This makes me rather confident in saying that the enum type passed to the `afterXXX` functions belongs to the class `fBase_c` and is 12 characters long.~~ `fBase_c::{funcName}( {enumname} )` would not be how the demangled symbol should look like, the `fBase_c::` part does not get stripped. I am continuing to look for properties of the enum type name.
 
 ## Code
 This repository includes the code that I used to make these findings. `mainTool.c` is what can be used to figure out the length of function names and arguments. (I should probably make it a command-line tool instead of hardcoding all values though)
