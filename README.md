@@ -32,14 +32,21 @@ Even though the `Number` part hasn't been undone yet, the hashes already match u
 
 Even though we didn't undo the correct string at the start, we still got the same hash! Note however that this is not a regular hash collision; hashing `NumberOneIpwbfwt` and `NumberTwoIpwbfwt` do not result in the beginning hash (For str1: 0xbe00394b != 0x0673af0b).
 
-Here's how it differs: If you were to try to find a regular hash collision for, say `MySecretSymbolName` (0xb2656506), you would have to try random strings until one of them also has the exact hash of 0xb2656506. With this vulnerability, if you have `NumberOne{Unknown}` and `NumberTwo{Unknown}`, you have to find a string that, when used to undo both original strings until the 6th character (Letter r), produces the same hash. That resulting hash can be any number though, not just some specific one. This makes such a hash collision more common and thus easier to find.
+Here's how it differs: If you were to try to find a regular hash collision for, say `MySecretSymbolName` (0xb2656506), you would have to try random strings until one of them also has the exact hash of 0xb2656506. With this vulnerability, if you have `NumberOne{Unknown}` and `NumberTwo{Unknown}`, you have to find a string that, when used to undo both original strings until the end of `Number`, produces the same hash. That resulting hash can be any number though, not just some specific one. This makes such a hash collision more common and thus easier to find.
 
-Now, here comes the trick: These hash collisions are not only common enough to be found when using randomly generated strings (Finding a matching string for the example, `Ipwbfwt`, happened almost immediately after beginning the search), but they also appear a disproportionately large amount of times when the colliding string has the same length as the correct one (In fact, in my testing, I've only ever found a colliding string of the wrong length once).
+Now, here comes the trick: These hash collisions are not only common enough to be found when using randomly generated strings (Finding a matching string for the example, `Ipwbfwt`, happened almost immediately after beginning the search), but they also appear a disproportionately large amount of times when the colliding string has the same length as the correct one (only if your assumption of the static part of the name is correct though! Otherwise you might get never get the correct length).
 
 ## Application on the NSMBW hashes
-Thanks to [Ninji](https://twitter.com/_Ninji), a large amount of the hashes have already been cracked. A group of uncracked hashes interested me specifically though, the last missing functions in fBase_c. In the fBase_c class, there are the afterXXX functions which get called after preXXX and doXXX. I used this method to:
-1. Figure out that the enum that gets passed to it is 18 characters long, and
-2. Verify that the afterXXX functions are most likely actually called that (for afterDelete, the length of the function name calculated from the hash is 11 characters)
+Thanks to [Ninji](https://twitter.com/_Ninji), a large amount of the hashes have already been cracked. A group of uncracked hashes interested me specifically though, the last missing functions in `fBase_c`. In the `fBase_c` class, there are the `afterXXX` functions which get called after `preXXX` and `doXXX`. I used this method to:
+1. Figure out that the enum name that gets passed to it has length 12 and belongs to the class `fBase_c`, and
+2. Verify that the `afterXXX` functions are most likely actually called that (for afterDelete, the length of the name calculated via the hash is also 11 characters long)
+
+### Further details on this
+I used the fact that the afterXXX functions are thunked in `dBase_c` to get identical functions with different base classes. I started with the `afterCreate` symbol hash and used the hash for the mangled symbol to find out the length of the enum name. At first I assumed that the type name was simply `{len(name)}name` and quickly found collisions for 18 character strings. But I knew this wasn't correct, because I could not get any 18 character collisions with the `afterDraw` symbol hash.
+
+I realized that the enum might be a class member and just assumed that it must then belong to `fBase_c`. I let the program find collisions for `7fBase_cFQ27fBase_c{len(enumname)}enumname` and was able to find collisions with length 12. I moved over to the demangled symbol names and wasn't able to get any matches for `fBase_c::{funcName}( fBase_c::{len(enumname)}enumname )`. However, I was able to find collisions with length 12 for `fBase_c::{funcName}( {len(enumname)}enumname )`.
+
+This makes me rather confident in saying that the enum type passed to the `afterXXX` functions belongs to the class `fBase_c` and is 12 characters long.
 
 ## Code
 This repository includes the code that I used to make these findings. `mainTool.c` is what can be used to figure out the length of function names and arguments. (I should probably make it a command-line tool instead of hardcoding all values though)

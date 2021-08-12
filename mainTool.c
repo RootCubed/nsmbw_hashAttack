@@ -5,7 +5,6 @@
 
 #define u32 unsigned int
 
-// https://github.com/simontime/iQiPack/blob/master/crypto.cpp#L5
 u32 hash(char *string) {
 	u32 hash = 0x1505; // Initial hash value.
 
@@ -26,8 +25,45 @@ u32 hashContinue(u32 hash, char *string) {
 	return hash;
 }
 
-// @Ninji how tf
-u32 reverseHashStep(u32 hash, char c) {
+/*u32 reverseHashStep(u32 hash, char c) {
+    u32 xored, carry, mask, result;
+    xored = hash ^ c;
+
+    carry = 0;
+    result = xored & 0b11111;
+
+    mask = 0b11111 << 5;
+    result |= ((xored & mask) - ((result << 5) & mask) - carry) & (0b111111 << 5);
+    carry = result & (1 << 10);
+    result ^= carry;
+
+    mask = 0b11111 << 10;
+    result |= ((xored & mask) - ((result << 5) & mask) - carry) & (0b111111 << 10);
+    carry = result & (1 << 15);
+    result ^= carry;
+
+    mask = 0b11111 << 15;
+    result |= ((xored & mask) - ((result << 5) & mask) - carry) & (0b111111 << 15);
+    carry = result & (1 << 20);
+    result ^= carry;
+
+    mask = 0b11111 << 20;
+    result |= ((xored & mask) - ((result << 5) & mask) - carry) & (0b111111 << 20);
+    carry = result & (1 << 25);
+    result ^= carry;
+
+    mask = 0b11111 << 25;
+    result |= ((xored & mask) - ((result << 5) & mask) - carry) & (0b111111 << 25);
+    carry = result & (1 << 30);
+    result ^= carry;
+    
+    mask = 0b11 << 30;
+    result |= (xored & mask) - ((result << 5) & mask) - carry;
+
+    return result;
+}*/
+
+u32 reverseHashStep(u32 hash, char c) { // @Ninji how
     hash ^= c;
     u32 div = hash / 33;
     u32 rem = hash % 33;
@@ -36,7 +72,7 @@ u32 reverseHashStep(u32 hash, char c) {
 }
 
 const char possible[] = "ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz_";
-char buf[32];
+char buf[20];
 char *genStr(int len, long index) {
     for (int i = 0; i < len; i++) {
         buf[i] = possible[index % sizeof(possible)];
@@ -50,15 +86,33 @@ int main() {
     // ------------------------------
 
     // here are all the inputs
+
+    // for afterCreate
+    u32 fBaseFuncHash = 0xF4BAA446; // for mangled
+    u32 dBaseFuncHash = 0xF78D4984;
+    //u32 fBaseFuncHash = 0x2C15C681; // for demangled
+    //u32 dBaseFuncHash = 0x023630C3;
     
     // for afterDelete
-    u32 fBaseFuncHash = 0xC2AA80BB; // for mangled
-    u32 dBaseFuncHash = 0xA86EEAF9;
+    //u32 fBaseFuncHash = 0xC2AA80BB; // for mangled
+    //u32 dBaseFuncHash = 0xA86EEAF9;
     //u32 fBaseFuncHash = 0x71066FFC; // for demangled
     //u32 dBaseFuncHash = 0x7EFF42BE;
+    
+    // for afterExecute
+    //u32 fBaseFuncHash = 0xAF093B9D; // for mangled
+    //u32 dBaseFuncHash = 0xD3DF545F;
+    //u32 fBaseFuncHash = 0x834E007A; // for demangled
+    //u32 dBaseFuncHash = 0xD15D72F8;
+    
+    // for afterDraw
+    //u32 fBaseFuncHash = 0xC001F522; // for mangled
+    //u32 dBaseFuncHash = 0xB11C1B60;
+    //u32 fBaseFuncHash = 0xD3BF4625; // for demangled
+    //u32 dBaseFuncHash = 0x218945E7;
 
-    char preBrute_fBase[] = "7fBase_cF18";
-    char preBrute_dBase[] = "7dBase_cF18";
+    char preBrute_fBase[] = "fBase_cFQ27fBase_c12";
+    char preBrute_dBase[] = "dBase_cFQ27fBase_c12";
     //char preBrute_fBase[] = "fBase_c::";
     //char preBrute_dBase[] = "dBase_c::";
 
@@ -66,11 +120,11 @@ int main() {
     int isDemangledSymbol = 0;
     int knowArgumentLength = 1;
     
-    char argGuessBeginning[] = "";
-    char argGuessEnd[] = "_e";
+    char argGuessBeginning[] = "m";
+    char argGuessEnd[] = "";
 
-    int argLenGuessLower = 18;
-    int argLenGuessUpper = 18;
+    int argLenGuessLower = 12;
+    int argLenGuessUpper = 12;
 
     int funcNameGuess = 11; // todo: automate searching for this
 
@@ -171,7 +225,7 @@ int main() {
                 } else {
                     strcat(buf, "(funcname)__");
                     strcat(buf, preBrute_fBase);
-                    if (knowArgumentLength) {
+                    if (!knowArgumentLength) {
                         char numBuf[5];
                         itoa(len, numBuf, 10);
                         strcat(buf, numBuf);
