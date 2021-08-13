@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
-#include <string.h>   
+#include <string.h>
 
 #define u32 unsigned int
 
@@ -25,44 +25,6 @@ u32 hashContinue(u32 hash, char *string) {
 	return hash;
 }
 
-/*u32 reverseHashStep(u32 hash, char c) {
-    u32 xored, carry, mask, result;
-    xored = hash ^ c;
-
-    carry = 0;
-    result = xored & 0b11111;
-
-    mask = 0b11111 << 5;
-    result |= ((xored & mask) - ((result << 5) & mask) - carry) & (0b111111 << 5);
-    carry = result & (1 << 10);
-    result ^= carry;
-
-    mask = 0b11111 << 10;
-    result |= ((xored & mask) - ((result << 5) & mask) - carry) & (0b111111 << 10);
-    carry = result & (1 << 15);
-    result ^= carry;
-
-    mask = 0b11111 << 15;
-    result |= ((xored & mask) - ((result << 5) & mask) - carry) & (0b111111 << 15);
-    carry = result & (1 << 20);
-    result ^= carry;
-
-    mask = 0b11111 << 20;
-    result |= ((xored & mask) - ((result << 5) & mask) - carry) & (0b111111 << 20);
-    carry = result & (1 << 25);
-    result ^= carry;
-
-    mask = 0b11111 << 25;
-    result |= ((xored & mask) - ((result << 5) & mask) - carry) & (0b111111 << 25);
-    carry = result & (1 << 30);
-    result ^= carry;
-    
-    mask = 0b11 << 30;
-    result |= (xored & mask) - ((result << 5) & mask) - carry;
-
-    return result;
-}*/
-
 u32 reverseHashStep(u32 hash, char c) { // @Ninji how
     hash ^= c;
     u32 div = hash / 33;
@@ -71,8 +33,8 @@ u32 reverseHashStep(u32 hash, char c) { // @Ninji how
     return div + (adjust * 130150524) + ((adjust + 7) >> 3);
 }
 
-const char possible[] = "ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz_";
-char buf[20];
+const char possible[] = "ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz_0123456789";
+char buf[32];
 char *genStr(int len, long index) {
     for (int i = 0; i < len; i++) {
         buf[i] = possible[index % sizeof(possible)];
@@ -82,53 +44,56 @@ char *genStr(int len, long index) {
     return buf;
 }
 
-int main() {
-    // ------------------------------
+int main(int argc, char **argv) {
+    u32 fBaseFuncHash, dBaseFuncHash;
+    char preBrute_fBase[128];
+    char preBrute_dBase[128];
 
-    // here are all the inputs
-
-    // for afterCreate
-    u32 fBaseFuncHash = 0xF4BAA446; // for mangled
-    u32 dBaseFuncHash = 0xF78D4984;
-    //u32 fBaseFuncHash = 0x2C15C681; // for demangled
-    //u32 dBaseFuncHash = 0x023630C3;
+    int isDemangledSymbol, useArgumentLength;
     
-    // for afterDelete
-    //u32 fBaseFuncHash = 0xC2AA80BB; // for mangled
-    //u32 dBaseFuncHash = 0xA86EEAF9;
-    //u32 fBaseFuncHash = 0x71066FFC; // for demangled
-    //u32 dBaseFuncHash = 0x7EFF42BE;
-    
-    // for afterExecute
-    //u32 fBaseFuncHash = 0xAF093B9D; // for mangled
-    //u32 dBaseFuncHash = 0xD3DF545F;
-    //u32 fBaseFuncHash = 0x834E007A; // for demangled
-    //u32 dBaseFuncHash = 0xD15D72F8;
-    
-    // for afterDraw
-    //u32 fBaseFuncHash = 0xC001F522; // for mangled
-    //u32 dBaseFuncHash = 0xB11C1B60;
-    //u32 fBaseFuncHash = 0xD3BF4625; // for demangled
-    //u32 dBaseFuncHash = 0x218945E7;
+    char argGuessBeginning[64];
+    char argGuessEnd[64];
 
-    char preBrute_fBase[] = "fBase_cFQ27fBase_c12";
-    char preBrute_dBase[] = "dBase_cFQ27fBase_c12";
-    //char preBrute_fBase[] = "fBase_c::";
-    //char preBrute_dBase[] = "dBase_c::";
+    int argLenGuessLower, argLenGuessUpper;
 
+    int funcNameGuessLen; // todo: automate searching for this
 
-    int isDemangledSymbol = 0;
-    int knowArgumentLength = 1;
-    
-    char argGuessBeginning[] = "m";
-    char argGuessEnd[] = "";
+    if (argc > 1) {
+        FILE *f = fopen(argv[1], "r");
+        
+        fscanf(f, "0x%08x\n", &fBaseFuncHash);
+        fscanf(f, "0x%08x\n", &dBaseFuncHash);
+        
+        fgets(preBrute_fBase, 128, f);
+        preBrute_fBase[strcspn(preBrute_fBase, "\r\n")] = '\0';
+        fgets(preBrute_dBase, 128, f);
+        preBrute_dBase[strcspn(preBrute_dBase, "\r\n")] = '\0';
 
-    int argLenGuessLower = 12;
-    int argLenGuessUpper = 12;
+        fscanf(f, "%d %d", &isDemangledSymbol, &useArgumentLength);
+        
+        fgets(argGuessBeginning, 64, f);
+        argGuessBeginning[strcspn(argGuessBeginning, "\r\n")] = '\0';
+        fgets(argGuessEnd, 64, f);
+        argGuessEnd[strcspn(argGuessEnd, "\r\n")] = '\0';
+        
 
-    int funcNameGuess = 11; // todo: automate searching for this
+        fscanf(f, "%d-%d\n", &argLenGuessLower, &argLenGuessUpper);
+        fscanf(f, "%d\n", &funcNameGuessLen);
 
-    // ------------------------------
+        fclose(f);
+    } else {
+        printf("Please supply a collider file to start searching.");
+    }
+
+    if (argc <= 2 || strcmp(argv[2], "-s") != 0) {
+        printf("Beginning collision searching with parameters:\n");
+        printf("Hashes              0x%08x | 0x%08x\n", fBaseFuncHash, dBaseFuncHash);
+        printf("Static part         %10s | %10s\n", preBrute_fBase, preBrute_dBase);
+        printf("Demangled symbol    %s\n", (isDemangledSymbol) ? "[x]" : "[ ]");
+        printf("Use argument length %s\n", (useArgumentLength) ? "[x]" : "[ ]");
+        printf("Arg len guess range %d-%d\n", argLenGuessLower, argLenGuessUpper);
+        printf("Function name len   %d\n", funcNameGuessLen);
+    }
 
     srand((unsigned) time(NULL));
     u32 startHash_fBase = fBaseFuncHash;
@@ -146,7 +111,7 @@ int main() {
         startHash_dBase = reverseHashStep(startHash_dBase, argGuessEnd[i]);
     }
 
-    printf("Starting hash cracking (common function name):\n");
+    //printf("Starting hash cracking (common function name):\n");
 
 
     int lenGuessLower = argLenGuessLower - strlen(argGuessBeginning) - strlen(argGuessEnd);
@@ -157,10 +122,10 @@ int main() {
     int argLength = 0;
     int funcNameLength = 0;
     
-    char argName[32];
-    char funcName[32];
+    char argName[64];
+    char funcName[64];
 
-    while (found < 4) {
+    while (found < 100000) {
         for (int len = lenGuessLower; len <= lenGuessUpper; len++) {
             u32 curr_fBase = startHash_fBase;
             u32 curr_dBase = startHash_dBase;
@@ -179,7 +144,7 @@ int main() {
             }
 
             // number for type size
-            if (!knowArgumentLength && !isDemangledSymbol) {
+            if (useArgumentLength && !isDemangledSymbol) {
                 curr_fBase = reverseHashStep(curr_fBase, (len % 10) + '0');
                 curr_dBase = reverseHashStep(curr_dBase, (len % 10) + '0');
                 
@@ -196,13 +161,13 @@ int main() {
                 curr_fBase = reverseHashStep(curr_fBase, '(');
                 curr_dBase = reverseHashStep(curr_dBase, '(');
 
-                for (int i = 0; i < funcNameGuess; i++) {
+                for (int i = 0; i < funcNameGuessLen; i++) {
                     char c = possible[rand() % (sizeof(possible) - 1)];
-                    funcName[funcNameGuess - i - 1] = c;
+                    funcName[funcNameGuessLen - i - 1] = c;
                     curr_fBase = reverseHashStep(curr_fBase, c);
                     curr_dBase = reverseHashStep(curr_dBase, c);
                 }
-                funcName[funcNameGuess] = '\0';
+                funcName[funcNameGuessLen] = '\0';
             }
 
             for (int i = strlen(preBrute_fBase) - 1; i >= 0; i--) {
@@ -223,9 +188,9 @@ int main() {
                     strcat(buf, argGuessEnd);
                     strcat(buf, " )");
                 } else {
-                    strcat(buf, "(funcname)__");
+                    strcat(buf, "(commonStart)");
                     strcat(buf, preBrute_fBase);
-                    if (!knowArgumentLength) {
+                    if (useArgumentLength) {
                         char numBuf[5];
                         itoa(len, numBuf, 10);
                         strcat(buf, numBuf);
@@ -234,12 +199,12 @@ int main() {
                     strcat(buf, argName);
                     strcat(buf, argGuessEnd);
                 }
-                printf("Found hash collision: %s\n", buf);
+                printf("%s\n", buf);
+                fflush(stdout);
                 argLength = len;
-                funcNameLength = funcNameGuess;
+                funcNameLength = funcNameGuessLen;
                 found++;
             }
         }
     }
-    printf("Function name length = %d, argument name length = %d", funcNameLength, argLength);
 }

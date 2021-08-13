@@ -49,4 +49,28 @@ I realized that the enum might be a class member and just assumed that it must t
 ~~This makes me rather confident in saying that the enum type passed to the `afterXXX` functions belongs to the class `fBase_c` and is 12 characters long.~~ `fBase_c::{funcName}( {enumname} )` would not be how the demangled symbol should look like, the `fBase_c::` part does not get stripped. I am continuing to look for properties of the enum type name.
 
 ## Code
-This repository includes the code that I used to make these findings. `mainTool.c` is what can be used to figure out the length of function names and arguments. (I should probably make it a command-line tool instead of hardcoding all values though)
+This repository includes the code that I used to make these findings. `mainTool.c` is what can be used to figure out the length of function names and arguments. You input a collider settings file which contains all parameters, in this order:
+
+- Hashes
+```
+0x(hash1)
+0x(hash2)
+```
+- Static part
+```
+(static1)
+(static2)
+```
+- Hash is demangled symbol & Use argument length
+
+```
+(isDemangled = 1) (useArgumentLength = 1)
+```
+- Argument length guess range
+```
+(lowerBound)-(upperBound)
+```
+- Function name length guess (only used when figuring out a demangled symbol)
+```
+(name length guess)
+```
