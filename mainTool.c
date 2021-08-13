@@ -6,23 +6,23 @@
 #define u32 unsigned int
 
 u32 hash(char *string) {
-	u32 hash = 0x1505; // Initial hash value.
+    u32 hash = 0x1505; // Initial hash value.
 
-	for (u32 i = 0; string[i] != 0; i++) {
-		hash *= 33;
-		hash ^= string[i];
-	}
+    for (u32 i = 0; string[i] != 0; i++) {
+        hash *= 33;
+        hash ^= string[i];
+    }
 
-	return hash;
+    return hash;
 }
 
 u32 hashContinue(u32 hash, char *string) {
-	for (u32 i = 0; string[i] != 0; i++) {
-		hash *= 33;
-		hash ^= string[i];
-	}
+    for (u32 i = 0; string[i] != 0; i++) {
+        hash *= 33;
+        hash ^= string[i];
+    }
 
-	return hash;
+    return hash;
 }
 
 u32 reverseHashStep(u32 hash, char c) { // @Ninji how
