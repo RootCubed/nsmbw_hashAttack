@@ -63,19 +63,30 @@ int main(int argc, char **argv) {
         
         fscanf(f, "0x%08x\n", &fBaseFuncHash);
         fscanf(f, "0x%08x\n", &dBaseFuncHash);
-        
-        fgets(preBrute_fBase, 128, f);
-        preBrute_fBase[strcspn(preBrute_fBase, "\r\n")] = '\0';
-        fgets(preBrute_dBase, 128, f);
-        preBrute_dBase[strcspn(preBrute_dBase, "\r\n")] = '\0';
 
-        fscanf(f, "%d %d", &isDemangledSymbol, &useArgumentLength);
+        char inBuf[128];
         
-        fgets(argGuessBeginning, 64, f);
-        argGuessBeginning[strcspn(argGuessBeginning, "\r\n")] = '\0';
-        fgets(argGuessEnd, 64, f);
-        argGuessEnd[strcspn(argGuessEnd, "\r\n")] = '\0';
+        fgets(inBuf, 128, f);
+        inBuf[strcspn(inBuf, "\r\n")] = '\0';
+        sscanf(inBuf, "\"%s", preBrute_fBase);
+        preBrute_fBase[strcspn(preBrute_fBase, "\"")] = '\0';
         
+        fgets(inBuf, 128, f);
+        inBuf[strcspn(inBuf, "\r\n")] = '\0';
+        sscanf(inBuf, "\"%s", preBrute_dBase);
+        preBrute_dBase[strcspn(preBrute_dBase, "\"")] = '\0';
+
+        fscanf(f, "%d %d\n", &isDemangledSymbol, &useArgumentLength);
+        
+        fgets(inBuf, 64, f);
+        inBuf[strcspn(inBuf, "\r\n")] = '\0';
+        sscanf(inBuf, "\"%s", argGuessBeginning);
+        argGuessBeginning[strcspn(argGuessBeginning, "\"")] = '\0';
+        
+        fgets(inBuf, 64, f);
+        inBuf[strcspn(inBuf, "\r\n")] = '\0';
+        sscanf(inBuf, "\"%s", argGuessEnd);
+        argGuessEnd[strcspn(argGuessEnd, "\"")] = '\0';
 
         fscanf(f, "%d-%d\n", &argLenGuessLower, &argLenGuessUpper);
         fscanf(f, "%d\n", &funcNameGuessLen);
@@ -91,6 +102,7 @@ int main(int argc, char **argv) {
         printf("Static part         %10s | %10s\n", preBrute_fBase, preBrute_dBase);
         printf("Demangled symbol    %s\n", (isDemangledSymbol) ? "[x]" : "[ ]");
         printf("Use argument length %s\n", (useArgumentLength) ? "[x]" : "[ ]");
+        printf("Arg start/end guess \"%s\", \"%s\"\n", argGuessBeginning, argGuessEnd);
         printf("Arg len guess range %d-%d\n", argLenGuessLower, argLenGuessUpper);
         printf("Function name len   %d\n", funcNameGuessLen);
     }
@@ -126,17 +138,28 @@ int main(int argc, char **argv) {
     char funcName[64];
 
     while (found < 100000) {
-        for (int len = lenGuessLower; len <= lenGuessUpper; len++) {
-            u32 curr_fBase = startHash_fBase;
-            u32 curr_dBase = startHash_dBase;
-            
-            for (int i = 0; i < len; i++) {
-                char c = possible[rand() % (sizeof(possible) - 1)];
-                argName[len - i - 1] = c;
-                curr_fBase = reverseHashStep(curr_fBase, c);
-                curr_dBase = reverseHashStep(curr_dBase, c);
+        u32 save_1_fBase = startHash_fBase;
+        u32 save_1_dBase = startHash_dBase;
+
+        for (int i = 0; i < lenGuessUpper; i++) {
+            char c = possible[rand() % (sizeof(possible) - 1)];
+            argName[lenGuessUpper - i - 1] = c;
+            if (i < lenGuessLower - 1) {
+                save_1_fBase = reverseHashStep(save_1_fBase, c);
+                save_1_dBase = reverseHashStep(save_1_dBase, c);
             }
-            argName[len] = '\0';
+        }
+        argName[lenGuessUpper] = '\0';
+
+        for (int len = lenGuessLower; len <= lenGuessUpper; len++) {
+            
+            u32 curr_fBase = reverseHashStep(save_1_fBase, argName[lenGuessUpper - len]);
+            u32 curr_dBase = reverseHashStep(save_1_dBase, argName[lenGuessUpper - len]);
+
+            save_1_fBase = curr_fBase;
+            save_1_dBase = curr_dBase;
+
+            if ((lenGuessLower - len) % 2 == 1) continue;
 
             for (int i = strlen(argGuessBeginning) - 1; i >= 0; i--) {
                 curr_fBase = reverseHashStep(curr_fBase, argGuessBeginning[i]);
@@ -184,7 +207,7 @@ int main(int argc, char **argv) {
                     strcat(buf, funcName);
                     strcat(buf, "( ");
                     strcat(buf, argGuessBeginning);
-                    strcat(buf, argName);
+                    strcat(buf, argName + (lenGuessUpper - len));
                     strcat(buf, argGuessEnd);
                     strcat(buf, " )");
                 } else {
@@ -196,7 +219,7 @@ int main(int argc, char **argv) {
                         strcat(buf, numBuf);
                     }
                     strcat(buf, argGuessBeginning);
-                    strcat(buf, argName);
+                    strcat(buf, argName + (lenGuessUpper - len));
                     strcat(buf, argGuessEnd);
                 }
                 printf("%s\n", buf);
@@ -207,4 +230,5 @@ int main(int argc, char **argv) {
             }
         }
     }
+    //printf("Function name length = %d, argument name length = %d", funcNameLength, argLength);
 }
