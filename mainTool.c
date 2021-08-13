@@ -130,9 +130,6 @@ int main(int argc, char **argv) {
     int lenGuessUpper = argLenGuessUpper - strlen(argGuessBeginning) - strlen(argGuessEnd);
     
     int found = 0;
-
-    int argLength = 0;
-    int funcNameLength = 0;
     
     char argName[64];
     char funcName[64];
@@ -215,7 +212,7 @@ int main(int argc, char **argv) {
                     strcat(buf, preBrute_fBase);
                     if (useArgumentLength) {
                         char numBuf[5];
-                        itoa(len, numBuf, 10);
+                        snprintf(numBuf, 5, "%d", len);
                         strcat(buf, numBuf);
                     }
                     strcat(buf, argGuessBeginning);
@@ -224,11 +221,8 @@ int main(int argc, char **argv) {
                 }
                 printf("%s\n", buf);
                 fflush(stdout);
-                argLength = len;
-                funcNameLength = funcNameGuessLen;
                 found++;
             }
         }
     }
-    //printf("Function name length = %d, argument name length = %d", funcNameLength, argLength);
 }
