@@ -38,15 +38,13 @@ Now, here comes the trick: These hash collisions are not only common enough to b
 
 ## Application on the NSMBW hashes
 Thanks to [Ninji](https://twitter.com/_Ninji), a large amount of the hashes have already been cracked. A group of uncracked hashes interested me specifically though, the last missing functions in `fBase_c`. In the `fBase_c` class, there are the `afterXXX` functions which get called after `preXXX` and `doXXX`. I used this method to:
-1. Figure out that the enum name that gets passed to it has length 12 and belongs to the class `fBase_c`, and
-2. Verify that the `afterXXX` functions are most likely actually called that (for afterDelete, the length of the name calculated via the hash is also 11 characters long)
+1. Figure out that the enum name that gets passed to it is called `MAIN_STATE_e` and belongs to the class `fBase_c`, and
+2. Verify that the `afterXXX` functions are actually called `postXXX`.
 
 ### Further details on this
-I used the fact that the afterXXX functions are thunked in `dBase_c` to get identical functions with different base classes. I started with the `afterCreate` symbol hash and used the hash for the mangled symbol to find out the length of the enum name. At first I assumed that the type name was simply `{len(name)}name` and quickly found collisions for 18 character strings. But I knew this wasn't correct, because I could not get any 18 character collisions with the `afterDraw` symbol hash.
+I used the fact that the postXXX functions are thunked in `dBase_c` to get identical functions with different base classes. I started with the `postCreate` symbol hash and used the hash for the mangled symbol to find out the length of the enum name. At first I assumed that the type name was simply `{len(name)}name` and quickly found collisions for 18 character strings. But I knew this wasn't correct, because I could not get any 18 character collisions with the `afterDraw` symbol hash.
 
-I realized that the enum might be a class member and just assumed that it must then belong to `fBase_c`. I let the program find collisions for `7fBase_cFQ27fBase_c{len(enumname)}enumname` and was able to find collisions with length 12. I moved over to the demangled symbol names and wasn't able to get any matches for `fBase_c::{funcName}( fBase_c::{enumname} )`. However, I was able to find collisions with length 12 for `fBase_c::{funcName}( {enumname} )`.
-
-~~This makes me rather confident in saying that the enum type passed to the `afterXXX` functions belongs to the class `fBase_c` and is 12 characters long.~~ `fBase_c::{funcName}( {enumname} )` would not be how the demangled symbol should look like, the `fBase_c::` part does not get stripped. I am continuing to look for properties of the enum type name.
+(TODO: continue this section)
 
 ## Code
 This repository includes the code that I used to make these findings. `mainTool.c` is what can be used to figure out the length of function names and arguments. You input a collider settings file which contains all parameters, in this order:
